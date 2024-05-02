@@ -1,8 +1,8 @@
 import pygame
 import math
 from sys import exit
-from random import randint
-from settings import *
+from random import randint  # noqa: F401
+from settings import SCREEN_HEIGHT, SCREEN_WIDTH, FRAME_RATE
 
 def display_score(x,y):
     score_surf = header_font.render(f'{score}', False, (255,255,255))

@@ -1,88 +1,238 @@
 import pygame
 import math
-from random import randint
-from settings import *
+from random import randint, choice
+from settings import SCREEN_WIDTH, SCREEN_HEIGHT
 # from main_org import lives, player
 
-class Background(pygame.sprite.Sprite):
-    def __init__(self, groups):
-        super().__init__(groups)
-        self.image = pygame.image.load('../assets/images/assetMoon.png').convert_alpha()
-        self.rect = self.image.get_rect(center = (SCREEN_WIDTH/2 - 20, 150))
 
-    def destroy():
-        Background.kill() # ~
-
-    def update():
-        return
-    
 class Planet(pygame.sprite.Sprite):
     def __init__(self, groups):
         super().__init__(groups)
-        self.image = pygame.image.load('assets/images/assetDarkPlanet.png').convert_alpha()
-        self.rect = self.image.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2))
+        self.original_img = pygame.image.load(
+            "assets/images/assetDarkPlanet.png"
+        ).convert_alpha()
+        self.original_img = pygame.transform.smoothscale_by(self.original_img, 0.5)
+
+        self.image = self.original_img.copy()
+        self.rect = self.image.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
+
+        self.angle = 0
 
         self.mask = pygame.mask.from_surface(self.image)
 
-    def rotate(self):
-        rotated_img = pygame.transform.rotozoom(self.image, 0.002, 1) 
-        self.image = rotated_img
+    def rotate(self, angle_change):
+        self.angle += angle_change
+        self.image = pygame.transform.rotate(self.original_img, self.angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+        self.mask = pygame.mask.from_surface(self.image)
 
     def update(self, dt):
-        # self.rotate()
+        self.rotate(0.5)
         return
 
-class Tower(pygame.sprite.Sprite):
+
+class Asteroid(pygame.sprite.Sprite):
     def __init__(self, groups):
         super().__init__(groups)
+        asteroid_no = randint(1, 4)
+        self.original_img = pygame.image.load(
+            f"assets/images/assetAsteroid{str(asteroid_no)}.png"
+        ).convert_alpha()
+        self.original_img = pygame.transform.smoothscale_by(self.original_img, 0.25)
 
-        self.image = pygame.image.load('assets/images/assetDarkTower.png').convert_alpha()
-        self.image = pygame.transform.smoothscale_by(self.image, 0.5)#pygame.transform.scale(self.image, (100, 250))
-        # self.image = pygame.transform.rotate(self.image, randint(0,360))
-        self.rect = self.image.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2 * 0.7))
+        # spawn_coords = (randint(choice(randint(-10,-20), randint(randint(SCREEN_WIDTH + 10, SCREEN_WIDTH + 20)))), choice(randint(-10,-20), randint(SCREEN_HEIGHT+10, SCREEN_HEIGHT+20)))
+        # self.is_vertical = choice([True, False])
+        # if self.is_vertical:
+        #     x_coords = choice(
+        #         [
+        #             randint(50, 200),
+        #             randint(int(SCREEN_WIDTH) / 3, int(SCREEN_WIDTH) / 4),
+        #         ]
+        #     )  # noqa: F841
+        #     y_coords = choice(
+        #         [
+        #             randint(-20, -10),
+        #             randint(int(SCREEN_HEIGHT) + 10, int(SCREEN_HEIGHT) + 20),
+        #         ]
+        #     )  # noqa: F841
+        # else:
+        #     x_coords = choice(
+        #         [
+        #             randint(-20, -10),
+        #             randint(int(SCREEN_WIDTH) + 10, int(SCREEN_WIDTH) + 20),
+        #         ]
+        #     )  # noqa: F841
+        #     y_coords = choice(
+        #         [
+        #             randint(50, 200),
+        #             randint(int(SCREEN_HEIGHT) / 3, int(SCREEN_HEIGHT) / 4),
+        #         ]
+        #     )  # noqa: F841
+        # x_coords = choice([-100, SCREEN_WIDTH / 2, SCREEN_WIDTH + 100])
+        # y_coords = choice([-100, SCREEN_HEIGHT / 2, SCREEN_HEIGHT + 100])
+        spawn_points = [
+            (SCREEN_WIDTH / 2, -80),  # top
+            (SCREEN_WIDTH / 2, SCREEN_HEIGHT + 80),  # bottom
+            (-80, SCREEN_HEIGHT / 2),  # left
+            (SCREEN_WIDTH + 80, SCREEN_HEIGHT / 2),  # right
+        ]
+        self.spawn_choice = choice(spawn_points)
+        print(f"Asteroid spawned @ {self.spawn_choice}")
+        # self.direction = (0, 0)
+        self.angle = 0.032
+        if self.spawn_choice == spawn_points[0]:
+            self.x_direction = 0
+            self.y_direction = 1
+            self.angle *= -11
+        elif self.spawn_choice == spawn_points[1]:
+            self.x_direction = 0
+            self.y_direction = -1
+        elif self.spawn_choice == spawn_points[2]:
+            self.x_direction = 1
+            self.y_direction = 0
+            self.angle *= -0.2
+        elif self.spawn_choice == spawn_points[3]:
+            self.x_direction = -1
+            self.y_direction = 0
+            self.angle *= -32
+            # self.angle *= 20
+
+        self.image = self.original_img.copy()
+        self.rect = self.image.get_rect(center=(self.spawn_choice))
         self.mask = pygame.mask.from_surface(self.image)
 
-        self.angle = 0.016
-        self.angle_incr = 0.008
+        self.rot_angle = 0
+
         self.speed_multiplier = 5
+        self.direction = 0
+
+        # Orbital properties
+        self.orbit_points = []
+        self.velocity = [0, 0]
+        self.radius = ""
+        self.mass = 0
 
     def move(self, dt):
-        self.rect.move_ip(((int(math.cos(self.angle) * self.speed_multiplier)),  (int(math.sin(self.angle) * self.speed_multiplier))))
-        self.angle += self.angle_incr
+        if (
+            self.rect.x > SCREEN_WIDTH * 3 / 4
+            or self.rect.x < SCREEN_WIDTH / 4
+            or self.rect.y > SCREEN_HEIGHT * 3 / 4
+            or self.rect.y < SCREEN_HEIGHT / 4
+        ):
+            self.rect.move_ip(self.x_direction, self.y_direction)
+            self.mask = pygame.mask.from_surface(self.image)
+
+    def rotate(self, angle_change):
+        self.rot_angle += angle_change
+        self.image = pygame.transform.rotate(self.original_img, self.rot_angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
         self.mask = pygame.mask.from_surface(self.image)
-    
-    def rotate(self, dt):
-        rotated_img = pygame.transform.rotozoom(self.image, self.angle*dt, 1)
-        self.image = rotated_img
-        self.rect = self.image.get_rect(center = (SCREEN_WIDTH/2, SCREEN_HEIGHT/2 * 0.7))
+
+    def orbit(self, dt):
+        if (SCREEN_WIDTH / 5 <= self.rect.x <= SCREEN_WIDTH * 4 / 5) and (
+            SCREEN_HEIGHT / 6 <= self.rect.y <= SCREEN_HEIGHT * 3 / 4
+        ):
+            if self.x_direction == 1 or self.y_direction == 1:
+                y = int(math.cos(self.angle) * self.speed_multiplier)
+                x = int(math.sin(self.angle) * self.speed_multiplier)
+            else:
+                x = int(math.cos(self.angle) * self.speed_multiplier)
+                y = int(math.sin(self.angle) * self.speed_multiplier)
+            self.rect.move_ip(x, y)
+            if self.x_direction == -1:
+                self.angle -= dt * 1.5
+            else:
+                self.angle -= dt / 2
+            self.mask = pygame.mask.from_surface(self.image)
+
+    def destroy(self):
+        if (self.rect.centerx < -150 or self.rect.centerx > SCREEN_WIDTH + 150) or (
+            self.rect.centery < -150 or self.rect.centery > SCREEN_HEIGHT + 150
+        ):
+            self.kill()
+            print("asteroid deleted.")
+
+    def update(self, dt):
+        self.move(dt)
+        self.orbit(dt)
+        self.rotate(1)
+        self.destroy()
+
+
+class Tower(pygame.sprite.Sprite):
+    # TODO: May be replaced with asteroids
+    def __init__(self, groups):
+        super().__init__(groups)
+        self.original_img = pygame.image.load(
+            "assets/images/assetDarkTower2.png"
+        ).convert_alpha()
+        # self.original_img = pygame.transform.smoothscale_by(self.original_img, 1.5) #pygame.transform.scale(self.image, (100, 250))
+        self.original_img = pygame.transform.smoothscale(
+            self.original_img, (256, randint(400, 640))
+        )
+        # self.original_img = pygame.transform.rotate(self.original_img, randint(1,360))
+
+        self.image = self.original_img.copy()
+        self.rect = self.image.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
         self.mask = pygame.mask.from_surface(self.image)
+
+        self.rot_angle = 0  # angle of rotation
+
+        self.angle = 0.032  # angle of rotational motion
+        self.angle_incr = 0.016
+        self.speed_multiplier = 2.5
+
+    def move(self, dt):
+        x_coords = int(math.cos(self.angle) * self.speed_multiplier)
+        y_coords = int(math.sin(self.angle) * self.speed_multiplier)
+
+        self.rect.move_ip((x_coords, y_coords))
+        self.angle += dt
+        self.mask = pygame.mask.from_surface(self.image)
+
+    def rotate(self, angle_change, dt):
+        self.rot_angle += angle_change
+        self.image = pygame.transform.rotate(self.original_img, self.rot_angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+        self.mask = pygame.mask.from_surface(self.image)
+        return
 
     def change_height(self, dt):
         return
-    
-    def destroy(self, dt):
+
+    def destroy(self):
         self.kill()
 
     def update(self, dt):
         # self.move(dt)
-        # self.rotate(dt)
+        self.rotate(0.5, dt)
         return
+
 
 class Meteor(pygame.sprite.Sprite):
     def __init__(self, groups):
         super().__init__(groups)
 
-        img1 = pygame.image.load('assets/images/assetMeteor1.png').convert_alpha()
-        img1 = pygame.transform.scale(img1, (50, 50)) 
-        img2 = pygame.image.load('assets/images/assetMeteor2.png').convert_alpha()
-        img2 = pygame.transform.scale(img2, (50, 50)) 
-        self.meteor_frames = [img1,img2]
+        self.facing_right = choice([True, False])
+
+        img1 = pygame.image.load("assets/images/assetMeteor1.png").convert_alpha()
+        img1 = pygame.transform.scale(img1, (50, 50))
+        img2 = pygame.image.load("assets/images/assetMeteor2.png").convert_alpha()
+        img2 = pygame.transform.scale(img2, (50, 50))
+        if not self.facing_right:
+            img1 = pygame.transform.flip(img1, True, False)
+            img2 = pygame.transform.flip(img2, True, False)
+        self.meteor_frames = [img1, img2]
         self.index = 0
 
         self.image = self.meteor_frames[self.index]
         self.image = pygame.transform.scale(self.image, (50, 50))
-        self.rect = self.image.get_rect(center = (-50,randint(-200, 300)))
-
+        if self.facing_right:
+            self.rect = self.image.get_rect(center=(-50, randint(-200, 300)))
+        else:
+            self.rect = self.image.get_rect(
+                center=(SCREEN_WIDTH + 50, randint(-200, 300))
+            )
         self.mask = pygame.mask.from_surface(self.image)
 
     def animate(self, dt):
@@ -90,22 +240,20 @@ class Meteor(pygame.sprite.Sprite):
         if self.index >= len(self.meteor_frames):
             self.index = 0
         self.image = self.meteor_frames[int(self.index)]
-        self.mask = pygame.mask.from_surface(self.image) # update mask
+        self.mask = pygame.mask.from_surface(self.image)  # update mask
 
     def move(self, dt):
-        self.rect.x += 2
+        if self.facing_right:
+            self.rect.x += 2
+        else:
+            self.rect.x -= 2
         self.rect.y += 2
         self.mask = pygame.mask.from_surface(self.image)
 
-    # TODO: delete later
-    def reset_pos(self, dt):
-        if self.rect.x > SCREEN_WIDTH or self.rect.y > SCREEN_HEIGHT:
-            self.rect.center = (-50,-50)
-
-    def destroy(self,dt):
-        if self.rect.x > SCREEN_WIDTH and self.rect.y > SCREEN_HEIGHT:
+    def destroy(self, dt):
+        if self.rect.y > SCREEN_HEIGHT:
             self.kill()
-            print('meteor deleted.')
+            print("meteor deleted.")
 
     def update(self, dt):
         self.move(dt)
@@ -113,63 +261,59 @@ class Meteor(pygame.sprite.Sprite):
         # self.reset_pos(dt)
         self.destroy(dt)
 
+
 class Player(pygame.sprite.Sprite):
     def __init__(self, groups):
         super().__init__(groups)
 
-        img = pygame.image.load('assets/images/assetMoon.png').convert_alpha()
-        img =  pygame.transform.scale(img, (32,32))
+        self.original_img = pygame.image.load(
+            "assets/images/assetMoon.png"
+        ).convert_alpha()
+        self.original_img = pygame.transform.scale(self.original_img, (32, 32))
 
-        self.image = img
-        self.rect = self.image.get_rect(midbottom = (SCREEN_WIDTH/2, 150))
+        self.image = self.original_img.copy()
+        self.rect = self.image.get_rect(midbottom=(SCREEN_WIDTH / 2, 150))
 
         self.mask = pygame.mask.from_surface(self.image)
 
-        # self.score = 0
-        # self.lives = 3
-
         self.player_angle = 0
-        self.angle_incr = 0.006 # angle is incremented by this value each frame
-        self.player_gravity = 0.5 # the pull towards the center
-        self.player_rotation = 0.1
-        self.player_speed_multiplier = 5 # the speed of the orbital
-        self.player_max_speed = 12 # max orbital speed
-    
+        self.angle_incr = 0.006  # angle is incremented by this value each frame
+        self.player_gravity = 0.5  # the pull towards the center
+        self.player_rot_angle = 0  # rotatation angle
+        self.player_speed_multiplier = 5  # the speed of the orbital
+        self.player_max_speed = 12  # max orbital speed
+
     def move(self, dt):
-        x_coords = (int(math.cos(self.player_angle) * self.player_speed_multiplier))
-        y_coords = (int(math.sin(self.player_angle) * self.player_speed_multiplier))
+        x_coords = int(math.cos(self.player_angle) * self.player_speed_multiplier)
+        y_coords = int(math.sin(self.player_angle) * self.player_speed_multiplier)
         self.rect.move_ip((x_coords, y_coords))
         self.player_angle += dt
 
     def reset_speed(self):
         self.player_speed_multiplier = 5
         self.player_gravity = 0.5
-    
+
     def increase_speed(self, dt):
         if self.player_speed_multiplier <= self.player_max_speed:
-            self.player_speed_multiplier += dt/3
+            self.player_speed_multiplier += dt / 3
             # self.player_angle += dt * self.player_gravity
-            self.player_gravity += dt/12
+            self.player_gravity += dt / 12
             self.angle_incr *= 1.75
         # print(self.player_speed_multiplier) if self.player_speed_multiplier >= self.player_max_speed else{}
-            # print(self.player_speed_multiplier)
+        # print(self.player_speed_multiplier)
 
     def respawn(self):
-        self.rect.midbottom = (SCREEN_WIDTH/2-20, 150)
+        self.rect.midbottom = (SCREEN_WIDTH / 2 - 20, 150)
         # self.lives -= 1
         # print(f'Lives left: {self.lives}')
         self.player_angle = 0
 
-    def rotate(self, dt, img, x, y):
-        rotated_img = pygame.transform.rotozoom(self.image, -dt, 1)
-        self.image = rotated_img
+    def rotate(self, angle_change):
+        self.player_rot_angle += angle_change  # in degrees
+        self.image = pygame.transform.rotate(self.original_img, self.player_rot_angle)
+        self.rect = self.image.get_rect(center=self.rect.center)
+        self.mask = pygame.mask.from_surface(self.image)  # update mask
 
-        # self.image = pygame.transform.rotate(img, self.player_rotation)
-        # self.rect =  self.image.get_rect(center = img.get_rect(center = (x, y)).center)
-
-        # self.player_rotation += 0.1
-        self.mask = pygame.mask.from_surface(self.image) # update mask
-    
     def check_input(self, dt):
         key = pygame.key.get_pressed()
         if key[pygame.K_SPACE]:
@@ -184,7 +328,7 @@ class Player(pygame.sprite.Sprite):
 
     # def get_score(self, dt):
     #     return self.score
-    
+
     # def get_lives(self, dt):
     #     return self.lives
 
@@ -193,7 +337,7 @@ class Player(pygame.sprite.Sprite):
         self.increase_speed(dt)
         self.check_input(dt)
         self.gravity(dt)
-        # self.rotate( dt, self.image,self.rect.x, self.rect.y)
-    
+        self.rotate(-4)
+
     def destroy(self):
-        self.kill() # ~ 
+        self.kill()  # ~
