@@ -8,6 +8,14 @@
 
 <h2>📖 Tutorial</h2>
 
+<b>Notes:</b>
+
+- You will start the game with <b>3 lives</b>
+  
+- Your score will <b>incease by 1</b> for each <b>millisecond</b> you survive
+  
+- The game will end once you run out of lives
+
 <h3>1. Hold 'SPACEBAR' to glide upwards.</h3>
 <p>- As gravity pulls the <b>Moon</b> towards the center, try to avoid crashing into the <b>Planet</b>.</p>
 
