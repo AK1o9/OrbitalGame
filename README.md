@@ -1,4 +1,3 @@
-
 ![title_logo](https://github.com/AK1o9/Orbital/assets/96708800/75528628-618b-4e39-aac2-429a609f70ad)
 
 <h1>Summary</h1>

@@ -2,7 +2,6 @@ import pygame
 import math
 from random import randint, choice
 from settings import SCREEN_WIDTH, SCREEN_HEIGHT
-# from main_org import lives, player
 
 
 class Planet(pygame.sprite.Sprite):
@@ -40,36 +39,6 @@ class Asteroid(pygame.sprite.Sprite):
         ).convert_alpha()
         self.original_img = pygame.transform.smoothscale_by(self.original_img, 0.25)
 
-        # spawn_coords = (randint(choice(randint(-10,-20), randint(randint(SCREEN_WIDTH + 10, SCREEN_WIDTH + 20)))), choice(randint(-10,-20), randint(SCREEN_HEIGHT+10, SCREEN_HEIGHT+20)))
-        # self.is_vertical = choice([True, False])
-        # if self.is_vertical:
-        #     x_coords = choice(
-        #         [
-        #             randint(50, 200),
-        #             randint(int(SCREEN_WIDTH) / 3, int(SCREEN_WIDTH) / 4),
-        #         ]
-        #     )  # noqa: F841
-        #     y_coords = choice(
-        #         [
-        #             randint(-20, -10),
-        #             randint(int(SCREEN_HEIGHT) + 10, int(SCREEN_HEIGHT) + 20),
-        #         ]
-        #     )  # noqa: F841
-        # else:
-        #     x_coords = choice(
-        #         [
-        #             randint(-20, -10),
-        #             randint(int(SCREEN_WIDTH) + 10, int(SCREEN_WIDTH) + 20),
-        #         ]
-        #     )  # noqa: F841
-        #     y_coords = choice(
-        #         [
-        #             randint(50, 200),
-        #             randint(int(SCREEN_HEIGHT) / 3, int(SCREEN_HEIGHT) / 4),
-        #         ]
-        #     )  # noqa: F841
-        # x_coords = choice([-100, SCREEN_WIDTH / 2, SCREEN_WIDTH + 100])
-        # y_coords = choice([-100, SCREEN_HEIGHT / 2, SCREEN_HEIGHT + 100])
         spawn_points = [
             (SCREEN_WIDTH / 2, -80),  # top
             (SCREEN_WIDTH / 2, SCREEN_HEIGHT + 80),  # bottom
@@ -78,7 +47,6 @@ class Asteroid(pygame.sprite.Sprite):
         ]
         self.spawn_choice = choice(spawn_points)
         print(f"Asteroid spawned @ {self.spawn_choice}")
-        # self.direction = (0, 0)
         self.angle = 0.032
         if self.spawn_choice == spawn_points[0]:
             self.x_direction = 0
@@ -95,7 +63,6 @@ class Asteroid(pygame.sprite.Sprite):
             self.x_direction = -1
             self.y_direction = 0
             self.angle *= -32
-            # self.angle *= 20
 
         self.image = self.original_img.copy()
         self.rect = self.image.get_rect(center=(self.spawn_choice))
@@ -159,56 +126,6 @@ class Asteroid(pygame.sprite.Sprite):
         self.destroy()
 
 
-class Tower(pygame.sprite.Sprite):
-    # TODO: May be replaced with asteroids
-    def __init__(self, groups):
-        super().__init__(groups)
-        self.original_img = pygame.image.load(
-            "assets/images/assetDarkTower2.png"
-        ).convert_alpha()
-        # self.original_img = pygame.transform.smoothscale_by(self.original_img, 1.5) #pygame.transform.scale(self.image, (100, 250))
-        self.original_img = pygame.transform.smoothscale(
-            self.original_img, (256, randint(400, 640))
-        )
-        # self.original_img = pygame.transform.rotate(self.original_img, randint(1,360))
-
-        self.image = self.original_img.copy()
-        self.rect = self.image.get_rect(center=(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2))
-        self.mask = pygame.mask.from_surface(self.image)
-
-        self.rot_angle = 0  # angle of rotation
-
-        self.angle = 0.032  # angle of rotational motion
-        self.angle_incr = 0.016
-        self.speed_multiplier = 2.5
-
-    def move(self, dt):
-        x_coords = int(math.cos(self.angle) * self.speed_multiplier)
-        y_coords = int(math.sin(self.angle) * self.speed_multiplier)
-
-        self.rect.move_ip((x_coords, y_coords))
-        self.angle += dt
-        self.mask = pygame.mask.from_surface(self.image)
-
-    def rotate(self, angle_change, dt):
-        self.rot_angle += angle_change
-        self.image = pygame.transform.rotate(self.original_img, self.rot_angle)
-        self.rect = self.image.get_rect(center=self.rect.center)
-        self.mask = pygame.mask.from_surface(self.image)
-        return
-
-    def change_height(self, dt):
-        return
-
-    def destroy(self):
-        self.kill()
-
-    def update(self, dt):
-        # self.move(dt)
-        self.rotate(0.5, dt)
-        return
-
-
 class Meteor(pygame.sprite.Sprite):
     def __init__(self, groups):
         super().__init__(groups)
@@ -258,7 +175,6 @@ class Meteor(pygame.sprite.Sprite):
     def update(self, dt):
         self.move(dt)
         self.animate(dt)
-        # self.reset_pos(dt)
         self.destroy(dt)
 
 
@@ -281,7 +197,7 @@ class Player(pygame.sprite.Sprite):
         self.player_gravity = 0.5  # the pull towards the center
         self.player_rot_angle = 0  # rotatation angle
         self.player_speed_multiplier = 5  # the speed of the orbital
-        self.player_max_speed = 12  # max orbital speed
+        self.player_max_speed = 7.2  # max orbital speed
 
     def move(self, dt):
         x_coords = int(math.cos(self.player_angle) * self.player_speed_multiplier)
@@ -294,18 +210,14 @@ class Player(pygame.sprite.Sprite):
         self.player_gravity = 0.5
 
     def increase_speed(self, dt):
-        if self.player_speed_multiplier <= self.player_max_speed:
-            self.player_speed_multiplier += dt / 3
-            # self.player_angle += dt * self.player_gravity
-            self.player_gravity += dt / 12
-            self.angle_incr *= 1.75
-        # print(self.player_speed_multiplier) if self.player_speed_multiplier >= self.player_max_speed else{}
-        # print(self.player_speed_multiplier)
+        if self.player_speed_multiplier < self.player_max_speed:
+            self.player_speed_multiplier += dt / 5
+            self.player_gravity += dt * 2
+            self.angle_incr -= dt
+            # print(f"Player speed ++ ({self.player_speed_multiplier})")
 
     def respawn(self):
         self.rect.midbottom = (SCREEN_WIDTH / 2 - 20, 150)
-        # self.lives -= 1
-        # print(f'Lives left: {self.lives}')
         self.player_angle = 0
 
     def rotate(self, angle_change):
@@ -318,26 +230,15 @@ class Player(pygame.sprite.Sprite):
         key = pygame.key.get_pressed()
         if key[pygame.K_SPACE]:
             self.player_angle -= 0.03
-        # if key[pygame.K_a]:
-        #     self.rect.x -= 3
-        # if key[pygame.K_d]:
-        #     self.rect.x += 3
 
     def gravity(self, dt):
         self.player_angle += self.player_gravity * dt
 
-    # def get_score(self, dt):
-    #     return self.score
-
-    # def get_lives(self, dt):
-    #     return self.lives
-
     def update(self, dt):
         self.move(dt)
-        self.increase_speed(dt)
         self.check_input(dt)
         self.gravity(dt)
         self.rotate(-4)
 
     def destroy(self):
-        self.kill()  # ~
+        self.kill()

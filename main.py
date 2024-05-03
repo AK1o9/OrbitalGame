@@ -4,7 +4,7 @@ import time
 from sys import exit
 from random import randint  # noqa: F401
 from settings import SCREEN_HEIGHT, SCREEN_WIDTH, FRAME_RATE, WHITE, BLACK
-from sprites import Planet, Tower, Meteor, Player, Asteroid  # noqa: F401
+from sprites import Planet, Meteor, Player, Asteroid
 
 
 class Game:
@@ -31,6 +31,8 @@ class Game:
         self.planet = Planet(
             [self.all_sprites, self.collision_sprites, self.menu_sprites]
         )
+        self.meteors = []
+        self.asteroids = []
 
         # fonts
         self.header_font = pygame.font.Font("assets/fonts/Poppins-Light.ttf", 64)
@@ -38,6 +40,12 @@ class Game:
         self.lives = 3
         self.score = 0
         self.start_time = 0
+
+        self.score_checkpoints = [
+            25,
+            50,
+            80,
+        ]  # checkpoints in which the game difficulty increases
 
         # title
         self.title_img = pygame.image.load(
@@ -72,10 +80,10 @@ class Game:
             pygame.sprite.spritecollide(
                 self.player, self.collision_sprites, False, pygame.sprite.collide_mask
             )
-            or self.player.rect.top > SCREEN_HEIGHT
-            or self.player.rect.bottom < 0
-            or self.player.rect.left > SCREEN_WIDTH + 20
-            or self.player.rect.right < -20
+            or self.player.rect.top > SCREEN_HEIGHT + 140
+            or self.player.rect.bottom < -140
+            or self.player.rect.left > SCREEN_WIDTH + 140
+            or self.player.rect.right < -140
         ):
             print("Collision!")
             self.lose_life()
@@ -107,13 +115,16 @@ class Game:
         self.screen.blit(lives_surf, lives_rect)
 
     def reduce_timers(self):
-        if self.score == 20:
+        if self.score == self.score_checkpoints[0]:
             pygame.time.set_timer(self.meteor_timer, 4500)
             pygame.time.set_timer(self.asteroid_timer, 4000)
-        #
-        elif self.score == 40:
+        elif self.score == self.score_checkpoints[1]:
             pygame.time.set_timer(self.meteor_timer, 3200)
             pygame.time.set_timer(self.asteroid_timer, 3600)
+
+    def increase_player_speed(self, dt):
+        if self.score >= self.score_checkpoints[2]:
+            self.player.increase_speed(dt)
 
     def restart(self):
         # reset score & lives
@@ -122,12 +133,17 @@ class Game:
         pygame.time.set_timer(self.meteor_timer, 7800)
         pygame.time.set_timer(self.asteroid_timer, 5000)
 
-        # TODO: Remove/reset obstacles
         # reset player abilities
         self.player.reset_speed()
         self.player.respawn()
         # change screen
         self.screen_controller = 1
+        # clear obstacles
+        if self.meteors and self.asteroids:
+            for meteor in self.meteors:
+                meteor.kill()
+            for asteroid in self.asteroids:
+                asteroid.kill()
 
     def run(self):
         last_time = time.time()
@@ -145,9 +161,13 @@ class Game:
                     if event.type == pygame.MOUSEBUTTONDOWN:
                         print(event.pos)
                     if event.type == self.meteor_timer:
-                        Meteor([self.all_sprites, self.collision_sprites])
+                        self.meteors.append(
+                            Meteor([self.all_sprites, self.collision_sprites])
+                        )
                     if event.type == self.asteroid_timer:
-                        Asteroid([self.all_sprites, self.collision_sprites])
+                        self.asteroids.append(
+                            Asteroid([self.all_sprites, self.collision_sprites])
+                        )
                 else:
                     if event.type == pygame.KEYDOWN:
                         if event.key == pygame.K_SPACE:
@@ -173,15 +193,18 @@ class Game:
                 self.display_score(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
                 self.display_lives(SCREEN_WIDTH / 10 * 9, SCREEN_HEIGHT / 20)
 
+                # Reset attributes (which were edited in the MENU SCREEN below )
+                self.player.player_gravity = 0.5
+
                 # Gameplay progression
                 self.reduce_timers()
+                self.increase_player_speed(dt)
 
             elif self.screen_controller == 0:
                 # MENU SCREEN
                 self.screen.fill(BLACK)
                 self.player.rect.move(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 4)
                 self.menu_sprites.draw(self.screen)
-                self.player.player_max_speed = 5
                 self.player.player_gravity = 0
                 self.menu_sprites.update(dt)
                 self.screen.blit(self.title_img, self.title_rect)
