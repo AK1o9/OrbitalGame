@@ -1,8 +1,6 @@
 import pygame
-import math  # noqa: F401
 import time
 from sys import exit
-from random import randint  # noqa: F401
 from settings import SCREEN_HEIGHT, SCREEN_WIDTH, FRAME_RATE, WHITE, BLACK
 from sprites import Planet, Meteor, Player, Asteroid
 
@@ -87,6 +85,7 @@ class Game:
         ):
             print("Collision!")
             self.lose_life()
+            self.clear_obstacles()
 
     def add_score(self):
         self.score += 1
@@ -139,6 +138,9 @@ class Game:
         # change screen
         self.screen_controller = 1
         # clear obstacles
+        self.clear_obstacles()
+
+    def clear_obstacles(self):
         if self.meteors and self.asteroids:
             for meteor in self.meteors:
                 meteor.kill()
@@ -196,7 +198,7 @@ class Game:
                 # Reset attributes (which were edited in the MENU SCREEN below )
                 self.player.player_gravity = 0.5
 
-                # Gameplay progression
+                # Difficulty progression
                 self.reduce_timers()
                 self.increase_player_speed(dt)
 
