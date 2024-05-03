@@ -16,7 +16,7 @@
 
 
 
-<h3>2. Overtime, obstacles will appear. Don't crash into them!</h3>
+<h3>2. Obstacles will start to appear. Don't crash into them!</h3>
 <p>- Be careful not to crash into asteroids & meteors.
   
   - <b>Meteors</b> fall diagonally.
@@ -25,7 +25,7 @@
 ![image](https://github.com/AK1o9/Orbital/assets/96708800/84e65427-4d60-4be9-a17c-5f52196fa529)
 
 
-<h3>3. As time goes on, things gets even more hectic. SURVIVE FOR AS LONG AS POSSIBLE!</h3>
+<h3>3. Overtime, things will get even more hectic. SURVIVE FOR AS LONG AS POSSIBLE!</h3>
 <p>- Obstacles will appear more frequently and the <b>Moon</b> will start to pick up speed as you reach certain checkpoints.</p>
 
 ![image](https://github.com/AK1o9/Orbital/assets/96708800/041a944f-0796-4de3-a23d-7a600c75c43b)
