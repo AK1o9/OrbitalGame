@@ -71,7 +71,10 @@ class Game:
         )
 
         # audio
-        # TODO: BG music and score sfx
+        # TODO: BG music (looped), score sfx, crash sfx
+        self.background_music = pygame.mixer.Sound("assets/audio/bgMusic.mp3")
+        self.background_music.set_volume(0.05)
+        self.background_music.play(-1)
 
     def collisions(self):
         if (
@@ -84,6 +87,7 @@ class Game:
             or self.player.rect.right < -140
         ):
             print("Collision!")
+            self.player.player_crash_sound.play()
             self.lose_life()
             self.clear_obstacles()
 
@@ -150,6 +154,7 @@ class Game:
     def run(self):
         last_time = time.time()
         running = True
+        self.background_music.play(-1)
         while running:
             # Delta time
             dt = time.time() - last_time

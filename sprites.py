@@ -199,6 +199,9 @@ class Player(pygame.sprite.Sprite):
         self.player_speed_multiplier = 5  # the speed of the orbital
         self.player_max_speed = 7.2  # max orbital speed
 
+        self.player_crash_sound = pygame.mixer.Sound("assets/audio/crashSound.mp3")
+        self.player_crash_sound.set_volume(0.5)
+
     def move(self, dt):
         x_coords = int(math.cos(self.player_angle) * self.player_speed_multiplier)
         y_coords = int(math.sin(self.player_angle) * self.player_speed_multiplier)
